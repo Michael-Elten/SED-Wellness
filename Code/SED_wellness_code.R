@@ -149,6 +149,7 @@ missing_data<-all_participants_filtered %>%
 return(missing_data)
 
 }
+week1_miss<-list_no_submissions(week_number = 1)
 
 #combine submissions with non-submissions to get complete dataset
 compile_weekly_data<-function(week_number=""){
@@ -290,6 +291,18 @@ plot_bargraph_by_team(week_number=1)
 
 #individual stats to calculate:
 
+top_ten_performers<-function(week_number=""){
+  if (is.numeric(week_number)==TRUE){
+    weekly_data <-weekly_data %>%
+      filter(week_num==week_number)
+  }
+  weekly_data %>%
+    arrange(desc(adjusted_weekly_minutes))%>%
+    select(email, name, bureau, team, adjusted_weekly_minutes)%>%
+    head(10)
+}
+top_ten_performers(week_number=1)
+
 
 # Day of week champion
 #Sun=1,Mon=2,Wed=3, etc.
@@ -424,23 +437,27 @@ collect_results<-function(week_number=""){
  weekly_data<-compile_weekly_data(week_number = week_number)
  bureau_stats_list<-bureau_stats(week_number = week_number)
  stats_by_team_list<-stats_by_team(week_number = week_number)
-  
+
+ top_ten_performers_list<-top_ten_performers(week_number = week_number)  
  monday_champion_list<-day_of_week_champion(week_number = week_number, week_day = 2)
  hot_out_the_gate_list<-hot_out_the_gate(week_number = week_number)
  strong_finish_list<-strong_finish(week_number = week_number)
  social_butterfly_list<-social_butterfly(week_number = week_number)
  active_hermit_list<-active_hermit(week_number = week_number)
+ consistent_performer_list<-consistent_performer(week_number = week_number)
  big_effort_list<-big_effort(week_number = week_number)
   
  results_to_compile<-list(
    "Weekly data"= weekly_data,
    "Stats by Bureau" = bureau_stats_list,
    "Stats by Team" = stats_by_team_list,
+   "Top Ten Performers" = top_ten_performers_list,
    "Monday Champions" = monday_champion_list,
    "Hot out of the gate" = hot_out_the_gate_list,
    "Strong finishers" = strong_finish_list,
    "Social Butterflys" = social_butterfly_list,
-   "Active Hermits" = active_hermit_list,
+   "Active Independents" = active_hermit_list,
+   "Consistent Performers" = consistent_performer_list,
    "Garguantuan Effort days" = big_effort_list
    )
  
@@ -448,10 +465,3 @@ collect_results<-function(week_number=""){
   
 }
 collect_results(week_number = 1)
-
-consistent_performer_week_1<-consistent_performer(week_number = 1)
-big_effort_week_1<-big_effort(week_number = 1)
-
-list_of_datasets<-list("Consistent_Performers"=consistent_performer_week_1, "Big_Efforts"=big_effort_week_1)
-write.xlsx(list_of_datasets, "test_file.xlsx")
-
