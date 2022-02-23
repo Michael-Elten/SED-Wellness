@@ -10,6 +10,7 @@ library(lubridate)
 library(ggplot2)
 library(openxlsx)
 library(ggsci)
+library(tibble)
 
 ### data import and cleaning ####
 
@@ -95,13 +96,13 @@ data_transformed<-data_cleaned %>%
                values_to="minutes") %>%
   mutate(week_start_date=as.Date(week_start_date),
          calendar_date=case_when(
-    day=="mon_mins" ~ week_start_date + 1,
-    day=="tues_mins" ~ week_start_date +2,
-    day=="wed_mins" ~ week_start_date +3,
-    day=="thurs_mins" ~ week_start_date +4,
-    day=="fri_mins" ~ week_start_date +5,
-    day=="sat_mins" ~ week_start_date +6,
-    day=="sun_mins" ~ week_start_date +7)) %>%
+    day=="mon_mins" ~ week_start_date ,
+    day=="tues_mins" ~ week_start_date +1,
+    day=="wed_mins" ~ week_start_date +2,
+    day=="thurs_mins" ~ week_start_date +3,
+    day=="fri_mins" ~ week_start_date +4,
+    day=="sat_mins" ~ week_start_date +5,
+    day=="sun_mins" ~ week_start_date +6)) %>%
   mutate(challenge_completed=ifelse(challenge_completed=="Yes",1,0))
 
 #Creating daily dataset that has only one entry per person/day
@@ -133,6 +134,28 @@ weekly_data<-daily_data %>%
   select(email, name, bureau, team, week_num, weekly_minutes, social_bonus, challenge_bonus, adjusted_weekly_minutes, weekly_social_minutes, weekly_solo_minutes)
 
 
+########## Bonuses #######
+
+team_name_bonuses<-c(1,2,3,4,5,6,7,8,9,10,11,12,13)
+team_name_bonus_value<-500
+
+team_numbers<-1:13
+team_names<-c("Toned Titans",
+              "Wellness WArriors",
+              "Because we SED so",
+              "Smells like Team Spirit",
+              "5-Alive",
+              "Fast but not furious",
+              "Bond Builders",
+              "Winning Winter Wanderers",
+              "#9s Feeling Fine",
+              "In10sity",
+              "O'Shins Eleven",
+              "Best Pace Scenario",
+              "Lean & Mean Thirteen")
+team_info<-tibble(numbers=team_numbers,
+                  names=team_names)
+
 ########## Summarizing data #####
 
 ## Those yet to submit anything for a given week!
@@ -149,7 +172,7 @@ missing_data<-all_participants_filtered %>%
 return(missing_data)
 
 }
-week1_miss<-list_no_submissions(week_number = 1)
+week2_miss<-list_no_submissions(week_number = 2)
 
 #combine submissions with non-submissions to get complete dataset
 compile_weekly_data<-function(week_number=""){
@@ -175,6 +198,7 @@ stats_by_team<-function(week_number=""){
     weekly_data <-weekly_data %>%
       filter(week_num==week_number)
   }
+
   weekly_data %>%
     group_by(team)%>%
     summarise(count=n(),
@@ -183,10 +207,14 @@ stats_by_team<-function(week_number=""){
               total_minutes=sum(adjusted_weekly_minutes),
               avg_adj_weekly_minutes=mean(adjusted_weekly_minutes),
               proportion_challenge_completed=sum((challenge_bonus/250)/count)*100) %>%
-    arrange(desc(total_minutes))
+    mutate(team_name_bonus=ifelse(as.numeric(team) %in% team_name_bonuses,1,0),
+           total_minutes_with_bonus=total_minutes+team_name_bonus_value*team_name_bonus,
+           team_members=ifelse(as.numeric(team)==2, 13, 12),
+           additional_daily_minutes_to_catch_top=(max(total_minutes_with_bonus)-total_minutes_with_bonus)/team_members/7) %>%
+    arrange(desc(total_minutes_with_bonus))
   
 }
-stats_by_team(week_number = 1)
+stats_by_team(week_number = 2)
 
 ## Stats by bureau
 bureau_stats<-function(week_number=""){
@@ -204,7 +232,7 @@ bureau_stats<-function(week_number=""){
   
 }
 
-bureau_stats(week_number = 1)
+bureau_stats(week_number = 2)
 
 
 
@@ -232,7 +260,7 @@ plot_histogram<-function(week_number=""){
 }
 
 
-plot_histogram(week_number = 1)
+plot_histogram(week_number = 2)
 
 
 plot_boxplot_by_team<-function(week_number=""){
@@ -255,7 +283,7 @@ plot_boxplot_by_team<-function(week_number=""){
     theme_bw() +
     theme(legend.position="none")
 }
-plot_boxplot_by_team(week_number=1)
+plot_boxplot_by_team(week_number=2)
   
 plot_bargraph_by_team<-function(week_number=""){
   if (is.numeric(week_number)==TRUE){
@@ -266,10 +294,13 @@ plot_bargraph_by_team<-function(week_number=""){
   } else{
     title="Bar graph for all weeks combined"
   }
+
   
   grouped_data<-weekly_data %>%
     group_by(team)%>%
-    summarise(total_adj_minutes=sum(adjusted_weekly_minutes))
+    summarise(total_adj_minutes=sum(adjusted_weekly_minutes)) %>%
+    mutate(team_name_bonus=ifelse(as.numeric(team) %in% team_name_bonuses,1,0),
+           total_minutes_with_bonuses=total_adj_minutes+500*team_name_bonus)
   
   # getPalette = colorRampPalette(brewer.pal(9, "Set1"))
   
@@ -278,7 +309,7 @@ plot_bargraph_by_team<-function(week_number=""){
     scale_fill_d3(palette="category20b")+
     # geom_text(aes(x=team, y=total_adj_minutes+150, label=round(total_adj_minutes)))+
     labs(title=title,
-        subtitle = "Wellness points = minutes of activity + 50% bonus for social minutes + 250 for weekly challenge",
+        subtitle = "Wellness points = minutes of activity + 50% bonus for social minutes + 250 for weekly challenge + team bonuses",
          y="Total Wellness Points",
          x="Team")+
     theme_bw() +
@@ -286,6 +317,8 @@ plot_bargraph_by_team<-function(week_number=""){
     
 }
 plot_bargraph_by_team(week_number=1)
+plot_bargraph_by_team(week_number=2)
+plot_bargraph_by_team()
 
 ###### Individual awards ####
 
@@ -301,7 +334,7 @@ top_ten_performers<-function(week_number=""){
     select(email, name, bureau, team, adjusted_weekly_minutes)%>%
     head(10)
 }
-top_ten_performers(week_number=1)
+top_ten_performers(week_number=2)
 
 
 # Day of week champion
@@ -319,7 +352,7 @@ day_of_week_champion<-function(week_number="",week_day=""){
     head(10)
   
 }
-day_of_week_champion(week_number=1, week_day = 2)
+day_of_week_champion(week_number=2, week_day = 2)
 
 # Hot out of the gate (Most hours Mon-Wed)
 hot_out_the_gate<-function(week_number=""){
@@ -338,7 +371,7 @@ hot_out_the_gate<-function(week_number=""){
     head(10)
   
 }
-hot_out_the_gate(week_number=1)
+hot_out_the_gate(week_number=2)
 
 # Strong Finish (Most hours Thurs-Sun)
 strong_finish<-function(week_number=""){
@@ -357,7 +390,7 @@ strong_finish<-function(week_number=""){
     head(10)
   
 }
-strong_finish (week_number=1)
+strong_finish (week_number=2)
 
 # Social Butterfly (most hours done socially)
 social_butterfly<-function(week_number=""){
@@ -370,7 +403,7 @@ social_butterfly<-function(week_number=""){
     select(email, name, bureau, team, weekly_social_minutes)%>%
     head(10)
 }
-social_butterfly(week_number=1)
+social_butterfly(week_number=2)
 
 # Active hermit (most hours done solo)
 active_hermit<-function(week_number=""){
@@ -383,7 +416,7 @@ active_hermit<-function(week_number=""){
     select(email, name, bureau, team, weekly_solo_minutes)%>%
     head(10)
 }
-active_hermit(week_number=1)
+active_hermit(week_number=2)
 
 # no days off (no days with 0 minutes)
 no_days_off<-function(week_number=""){
@@ -395,7 +428,7 @@ no_days_off<-function(week_number=""){
     filter(minutes>0) %>%
     group_by(email, name, bureau, team)%>%
     summarise(days_with_activity=n())%>%
-    filter(days_with_activity==7)%>%
+    filter(days_with_activity==14)%>%
     select(email, name, bureau, team, days_with_activity)
 }
 
@@ -414,7 +447,7 @@ consistent_performer<-function(week_number=""){
     select(email, name, bureau, team, minimum_minutes)%>%
     head(10)
 }
-consistent_performer(week_number = 1)
+consistent_performer(week_number = 2)
 
 # Big effort (had the day with the biggest minutes)
 big_effort<-function(week_number=""){
@@ -428,7 +461,7 @@ big_effort<-function(week_number=""){
     head(10)
 }
 
-big_effort(week_number = 1)
+big_effort(week_number = 2)
 
 
 
@@ -436,8 +469,8 @@ collect_results<-function(week_number=""){
  
  weekly_data<-compile_weekly_data(week_number = week_number)
  bureau_stats_list<-bureau_stats(week_number = week_number)
- stats_by_team_list<-stats_by_team(week_number = week_number)
-
+ weekly_stats_by_team_list<-stats_by_team(week_number = week_number)
+ total_stats_by_team_list<-stats_by_team()
  top_ten_performers_list<-top_ten_performers(week_number = week_number)  
  monday_champion_list<-day_of_week_champion(week_number = week_number, week_day = 2)
  hot_out_the_gate_list<-hot_out_the_gate(week_number = week_number)
@@ -450,7 +483,8 @@ collect_results<-function(week_number=""){
  results_to_compile<-list(
    "Weekly data"= weekly_data,
    "Stats by Bureau" = bureau_stats_list,
-   "Stats by Team" = stats_by_team_list,
+   "Weekly Stats by Team" = weekly_stats_by_team_list,
+   "Total Stats by Team" = total_stats_by_team_list,
    "Top Ten Performers" = top_ten_performers_list,
    "Monday Champions" = monday_champion_list,
    "Hot out of the gate" = hot_out_the_gate_list,
@@ -464,4 +498,4 @@ collect_results<-function(week_number=""){
  write.xlsx(results_to_compile, str_c("Results_week_",week_number,".xlsx"))
   
 }
-collect_results(week_number = 1)
+collect_results(week_number = 2)
