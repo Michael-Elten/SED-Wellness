@@ -1,5 +1,8 @@
 #SED Wellness Challenge code
 
+
+
+### Load relevant libraries ####
 library(googlesheets4)
 library(tidyr)
 library(dplyr)
@@ -14,8 +17,8 @@ library(tibble)
 
 ### Data import and cleaning ####
 
-gs4_deauth()
-sheet_url<-"ENTER_URL_HERE"
+googlesheets4::gs4_deauth()
+sheet_url<-"https://docs.google.com/spreadsheets/d/1L68zmCoIiizHHSFasAVWmHMM0u_rs_kbALZGfkyX4js"
 
 data_sheet_name<-"Form Responses 3"
 EN_participant_info_sheet_name<-"EN_Responses"
@@ -107,14 +110,14 @@ data_transformed<-data_cleaned %>%
 
 #Creating daily dataset that has only one entry per person/day
 daily_data<-data_transformed %>%
-  arrange(desc(email, calendar_date, minutes)) %>%
+  arrange(desc(email), desc(calendar_date), desc(minutes)) %>%
   distinct(email, calendar_date, minutes, .keep_all=TRUE) %>%
   left_join(all_participants_filtered, by="email") %>%
   select(timestamp,email, name, bureau, team, week_num, calendar_date, minutes, percent_social, challenge_completed)
 
 #Creating dataset with info on percent social and challenge completed by week (takes last entered data for a given week)
 weekly_info<-daily_data %>%
-  arrange(desc(email, week_num, timestamp))%>%
+  arrange(desc(email), desc(week_num), desc(timestamp))%>%
   distinct(email, week_num, .keep_all=TRUE) %>%
   
   select(email, name, bureau, team, week_num, percent_social, challenge_completed)
@@ -568,10 +571,3 @@ collect_results<-function(week_number=""){
   
 }
 collect_results()
-
-
-
-###########
-
-weekly_data<-weekly_data %>%
-  filter(bureau=="WATER AND AIR QUALITY BUREAU")
