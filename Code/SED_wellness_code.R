@@ -18,7 +18,7 @@ library(tibble)
 ### Data import and cleaning ####
 
 googlesheets4::gs4_deauth()
-sheet_url<-"https://docs.google.com/spreadsheets/d/1L68zmCoIiizHHSFasAVWmHMM0u_rs_kbALZGfkyX4js"
+sheet_url<-"Enter_URL_Here"
 
 data_sheet_name<-"Form Responses 3"
 EN_participant_info_sheet_name<-"EN_Responses"
